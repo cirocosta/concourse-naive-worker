@@ -1,8 +1,11 @@
+DEFAULT_WORKERS_DIR = ./workers
+DEFAULT_KEYS_DIR    = ./keys
+
 NAME                ?= $(shell uuidgen | cut -d '-' -f1)
 TSA_ADDRESS         ?= localhost:2222
-TSA_PUBLIC_KEY		?= ./keys/tsa_host_key.pub
-WORKER_PRIVATE_KEY  ?= ./keys/worker_key
-WORKER_STATE_DIR    ?= ./workers/$(NAME)
+TSA_PUBLIC_KEY	    ?= $(DEFAULT_KEYS_DIR)/tsa_host_key.pub
+WORKER_PRIVATE_KEY  ?= $(DEFAULT_KEYS_DIR)/worker_key
+WORKER_STATE_DIR    ?= $(DEFAULT_WORKERS_DIR)/$(NAME)
 
 
 define HELP
@@ -26,6 +29,9 @@ COMMANDS
 
     clean   Cleans any artifacts produced by this file.
 
+	    Note.: it only cleans assets generated to the default
+	           directories.
+
 
 ENVIRONMENT VARIABLES
 
@@ -40,6 +46,7 @@ endef
 
 
 run: $(WORKER_PRIVATE_KEY) $(TSA_PUBLIC_KEY)
+	mkdir -p $(DEFAULT_WORKERS_DIR)
 	concourse worker \
 		--name=$(NAME) \
 		--tsa-host=$(TSA_ADDRESS) \
@@ -49,17 +56,19 @@ run: $(WORKER_PRIVATE_KEY) $(TSA_PUBLIC_KEY)
 
 
 clean:
-	find ./keys -type f -mindepth 1 -maxdepth 1 -delete
-	find ./workers -type d -mindepth 1 -maxdepth 1 -exec rm -rf '{}' +
+	find $(DEFAULT_WORKERS_DIR) -type d -mindepth 1 -maxdepth 1 -exec rm -rf '{}' +
+	find $(DEFAULT_KEYS_DIR) -type d -mindepth 1 -maxdepth 1 -exec rm -rf '{}' +
 
 
 
 $(TSA_PUBLIC_KEY):
+	mkdir -p $(DEFAULT_KEYS_DIR)
 	docker cp \
 		concourse_web_1:/concourse-keys/tsa_host_key.pub \
 		$@
 
 $(WORKER_PRIVATE_KEY):
+	mkdir -p $(DEFAULT_KEYS_DIR)
 	docker cp \
 		concourse_web_1:/concourse-keys/worker_key \
 		$@
